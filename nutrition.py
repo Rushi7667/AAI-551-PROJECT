@@ -1,3 +1,6 @@
+# Author: Ishaan
+# Description: Nutrition logic that loads food data, calculates calories, and saves user log
+
 import pandas as pd
 import os
 
