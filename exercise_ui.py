@@ -9,22 +9,18 @@ import exercise
 
 
 def app(username="Rushi"):
-    # --- Sidebar ---
     st.sidebar.header(f"User: {username}")
     st.sidebar.info("Track your workouts and calories burned throughout the day!")
 
-    # --- Main Title ---
     st.title("🏋️ Exercise Tracker")
     st.markdown("### Log your workouts and monitor your performance")
 
-    # Load activities
     try:
         activities = exercise.get_activity_list()
     except Exception:
         st.error("⚠ Exercise dataset missing or unreadable. Please check `execersice/` folder.")
         return
 
-    # ---- Input Form ----
     with st.form("exercise_form"):
         col1, col2 = st.columns(2)
 
@@ -46,7 +42,6 @@ def app(username="Rushi"):
                 value=70.0
             )
 
-        # Live Calculator Preview
         try:
             preview_cals = exercise.calculate_calories(
                 activity=selected_activity,
@@ -63,7 +58,6 @@ def app(username="Rushi"):
             try:
                 calories = preview_cals
 
-                # Save entry
                 exercise.save_exercise_entry(
                     date=str(user_date),
                     activity=selected_activity,
@@ -76,7 +70,6 @@ def app(username="Rushi"):
             except Exception as e:
                 st.error(f"❌ Failed to save entry: {e}")
 
-    # ---- Recent Logs Section ----
     st.divider()
     st.subheader("📅 Your Recent Exercise Logs")
 
@@ -86,10 +79,8 @@ def app(username="Rushi"):
         try:
             history_df = pd.read_csv(exercise_file)
 
-            # Show last 5 logs
             st.dataframe(history_df.tail(5), use_container_width=True)
 
-            # Quick Statistics
             total_burned = history_df["calories_burned"].sum()
             last_activity = history_df.tail(1)["exercise_type"].values[0]
 
