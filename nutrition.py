@@ -4,7 +4,6 @@
 import pandas as pd
 import os
 
-# --- CONFIGURATION ---
 DATA_DIR = 'data/'
 FOOD_FOLDER = 'food'
 
@@ -15,20 +14,16 @@ def get_food_file_path():
     if not os.path.exists(FOOD_FOLDER):
         return None
     
-    # List all files and find the one ending in .csv
     files = os.listdir(FOOD_FOLDER)
     csv_files = [f for f in files if f.lower().endswith('.csv')]
     
     if not csv_files:
         return None
     
-    # Return full path to that file
     return os.path.join(FOOD_FOLDER, csv_files[0])
 
 def load_food_data():
-    """
-    Loads the food data using the automatically found file.
-    """
+   
     csv_path = get_food_file_path()
     if csv_path is None:
         return pd.DataFrame()
