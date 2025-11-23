@@ -1,6 +1,5 @@
 # Author: Rushi
-# Description: Exercise module that loads exercise dataset, calculates calories burned
-#               using calories-per-kg method, and saves user exercise logs.
+# Description: Exercise module that loads exercise dataset, calculates calories burned using calories-per-kg method, and saves user exercise logs.
 
 import os
 import pandas as pd
