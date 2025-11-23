@@ -5,18 +5,13 @@
 import os
 import pandas as pd
 
-# Path to the dataset
 DATASET_PATH = "exercise/exercise_dataset.csv"
 
-# Path where user logs will be saved
 EXERCISE_LOG_PATH = "data/exercise_log.csv"
 
 
 def load_exercise_dataset():
-    """
-    Loads the exercise dataset CSV into a pandas DataFrame.
-    Returns DataFrame: The loaded exercise dataset.
-    """
+   
     if not os.path.exists(DATASET_PATH):
         raise FileNotFoundError(f"Dataset not found at {DATASET_PATH}")
 
@@ -25,23 +20,12 @@ def load_exercise_dataset():
 
 
 def get_activity_list():
-#    Returns the list of exercise activities for UI dropdown.
     df = load_exercise_dataset()
     return df["Activity, Exercise or Sport (1 hour)"].tolist()
 
 
 def calculate_calories(activity, weight_kg, duration_minutes):
-    """
-    Calculates calories burned using the calories-per-kg method.
-
-    Args:
-        activity (str): Name of the activity selected by the user.
-        weight_kg (float): User's weight in kilograms.
-        duration_minutes (int): Duration of the exercise.
-
-    Returns:
-        float: Calories burned.
-    """
+ 
     df = load_exercise_dataset()
 
     row = df[df["Activity, Exercise or Sport (1 hour)"] == activity]
@@ -57,16 +41,7 @@ def calculate_calories(activity, weight_kg, duration_minutes):
 
 
 def save_exercise_entry(date, activity, duration_minutes, weight_kg, calories_burned):
-    """
-    Appends a new exercise entry to exercise_log.csv. Creates the file if missing.
-
-    Args:
-        date (str): Date selected by user.
-        activity (str): Exercise type.
-        duration_minutes (int): Duration of exercise.
-        weight_kg (float): User weight.
-        calories_burned (float): Calories burned during workout.
-    """
+   
 
     entry = {
         "date": [date],
@@ -78,7 +53,6 @@ def save_exercise_entry(date, activity, duration_minutes, weight_kg, calories_bu
 
     df_new = pd.DataFrame(entry)
 
-    # Create folder if missing
     os.makedirs("data", exist_ok=True)
 
     if os.path.exists(EXERCISE_LOG_PATH):
