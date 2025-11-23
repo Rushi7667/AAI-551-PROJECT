@@ -64,7 +64,6 @@ def tracker_screen(root, username):
         else:
             messagebox.showinfo("No Data", "No entry for today yet.")
 
-    # Add a new function to get the eaten calories
     def open_nutrition():
         in_str = in_entry.get()
         if not in_str.strip():
@@ -93,7 +92,6 @@ def tracker_screen(root, username):
     tk.Button(frame, text="Weekly Chart", font=("Helvetica", 11), bg="#9C27B0", fg="white", width=32, command=lambda: show_weekly_plot(username)).grid(row=6, column=0, columnspan=2, pady=15)
 
 def save_entry(username, in_cal, out_cal, goal):
-    """Append today's entry or replace if it already exists"""
     ensure_data_file(username)
     path = get_user_data_path(username)
     today = today_str()
@@ -116,7 +114,6 @@ def save_entry(username, in_cal, out_cal, goal):
         writer.writerows(data)
 
 def summarize_today(username):
-    """Return today's record if exists"""
     path = get_user_data_path(username)
     if not os.path.exists(path):
         return None
@@ -132,3 +129,4 @@ def summarize_today(username):
                     "goal": int(row["goal"]),
                 }
     return None
+
