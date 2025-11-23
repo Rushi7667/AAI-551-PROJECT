@@ -1,3 +1,6 @@
+#Author : Ishaan Dange
+#Description : Streamlit interface allowing users to select food, input weight, and visualize daily logs.
+
 import streamlit as st
 import pandas as pd
 from datetime import date
