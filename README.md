@@ -30,7 +30,7 @@ Create a Python virtual environment and install dependencies. Minimal packages u
 - streamlit
 - pandas
 - matplotlib
-<-!--
+  <!--
 You can create a `requirements.txt` with these entries and install via pip:
 
 ```powershell
