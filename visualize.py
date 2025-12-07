@@ -160,3 +160,117 @@ def show_exercise_plot(username):
         
     except Exception as e:
         ttk.Label(plot_window, text=f"Error creating visualization: {e}").pack(padx=20, pady=20)
+
+
+def show_dashboard(username):
+    """
+    Display a Streamlit dashboard for the user with their fitness summary.
+    """
+    import streamlit as st
+    import pandas as pd
+    from datetime import datetime, timedelta
+    
+    st.title(f"📊 Dashboard - {username}")
+    
+    # Import tracker to access data files
+    import tracker
+    
+    # Load nutrition and exercise data
+    nutrition_data = tracker._load(tracker.NUTRI_FILE, {})
+    exercise_data = tracker._load(tracker.EXER_FILE, {})
+    
+    user_nutrition = nutrition_data.get(username, [])
+    user_exercise = exercise_data.get(username, [])
+    
+    # Calculate metrics
+    total_cals_in = sum(record['calories'] for record in user_nutrition)
+    total_cals_out = sum(record['calories_burned'] for record in user_exercise)
+    net_cals = total_cals_in - total_cals_out
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("🍎 Calories In", f"{total_cals_in:.0f} kcal", 
+                 delta=f"{len(user_nutrition)} entries")
+    
+    with col2:
+        st.metric("💪 Calories Out", f"{total_cals_out:.0f} kcal", 
+                 delta=f"{len(user_exercise)} entries")
+    
+    with col3:
+        delta_color = "off" if net_cals == 0 else ("inverse" if net_cals > 0 else "normal")
+        st.metric("⚖️ Net Calories", f"{net_cals:.0f} kcal", delta_color=delta_color)
+    
+    st.divider()
+    
+    # Charts section
+    col_chart1, col_chart2 = st.columns(2)
+    
+    with col_chart1:
+        st.subheader("🥗 Top Foods")
+        if user_nutrition:
+            df_nutrition = pd.DataFrame(user_nutrition)
+            food_summary = df_nutrition.groupby('food')['calories'].sum().sort_values(ascending=False).head(10)
+            st.bar_chart(food_summary)
+        else:
+            st.info("No nutrition data yet.")
+    
+    with col_chart2:
+        st.subheader("🏃 Top Exercises")
+        if user_exercise:
+            df_exercise = pd.DataFrame(user_exercise)
+            exercise_summary = df_exercise.groupby('exercise')['calories_burned'].sum().sort_values(ascending=False).head(10)
+            st.bar_chart(exercise_summary)
+        else:
+            st.info("No exercise data yet.")
+    
+    st.divider()
+    
+    # Daily trends
+    st.subheader("📈 Daily Trends (Last 7 Days)")
+    
+    today = datetime.now()
+    last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    
+    daily_in = {}
+    daily_out = {}
+    
+    for day in last_7_days:
+        day_str = day.strftime("%Y-%m-%d")
+        daily_in[day_str] = sum(r['calories'] for r in user_nutrition if r['date'].startswith(day_str))
+        daily_out[day_str] = sum(r['calories_burned'] for r in user_exercise if r['date'].startswith(day_str))
+    
+    df_daily = pd.DataFrame({
+        'Date': list(daily_in.keys()),
+        'In': list(daily_in.values()),
+        'Out': list(daily_out.values())
+    })
+    
+    st.line_chart(df_daily.set_index('Date'))
+    
+    st.divider()
+    
+    # Recent entries
+    st.subheader("⏰ Recent Activities")
+    
+    all_activities = []
+    for record in user_nutrition:
+        all_activities.append({
+            'Date': record['date'],
+            'Type': '🥗 Nutrition',
+            'Details': f"{record['food']} ({record['calories']} kcal)"
+        })
+    for record in user_exercise:
+        all_activities.append({
+            'Date': record['date'],
+            'Type': '💪 Exercise',
+            'Details': f"{record['exercise']} ({record['calories_burned']} kcal)"
+        })
+    
+    if all_activities:
+        df_activities = pd.DataFrame(all_activities)
+        df_activities['Date'] = pd.to_datetime(df_activities['Date'])
+        df_activities = df_activities.sort_values('Date', ascending=False).head(20)
+        st.dataframe(df_activities, use_container_width=True, hide_index=True)
+    else:
+        st.info("No activities logged yet. Start by adding nutrition or exercise records!")

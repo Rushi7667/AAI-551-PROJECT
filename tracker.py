@@ -1,132 +1,136 @@
-# Author:Linpeng Mao
-# Date: 11/18/2025
-# Description:
-#   Main tracking module for the Fitness Tracker app.
-#   Displays post-login interface for logging calorie intake, calorie burn,
-#   and daily fitness goals. Also supports data saving, viewing summaries,
-#   and navigation to nutrition and exercise logs.
-#
-# Functions:
-#   - tracker_screen(root, username): Main user dashboard
-#   - save_entry(username, in_cal, out_cal, goal): Stores today's fitness data
-#   - summarize_today(username): Retrieves today’s entry from user log
+# ------------------------------------------------------------
+# Author: Linpeng Mao
+# Description: Tracking module for nutrition and exercise logging.
+# ------------------------------------------------------------
 
-import tkinter as tk
-from tkinter import messagebox
-import os
-import csv
-from datetime import datetime, timedelta
+import streamlit as st
+from datetime import date
+import storage
 
-from nutrition_ui import nutrition_screen
-from exercise_ui import exercise_screen
-from visualize import show_weekly_plot
-from utils.helpers import today_str, get_user_data_path, ensure_data_file
+NUTRI_FILE = "nutrition.json"
+EXER_FILE = "exercise.json"
 
-def tracker_screen(root, username):
-    for widget in root.winfo_children():
-        widget.destroy()
 
-    ensure_data_file(username)
+# ---------------- Utility Functions ----------------
 
-    frame = tk.Frame(root, padx=30, pady=20)
-    frame.pack(expand=True, fill="both")
+def _load(file, default):
+    """Load JSON data from storage."""
+    return storage.load_json(file, default)
 
-    tk.Label(frame, text=f"Hello, {username}!", font=("Helvetica", 16, "bold")).grid(row=0, column=0, columnspan=2, pady=(0, 20))
 
-    # Input fields
-    tk.Label(frame, text="Calories In (eaten):", font=("Helvetica", 12)).grid(row=1, column=0, sticky='e', pady=5)
-    in_entry = tk.Entry(frame, font=("Helvetica", 12), width=20)
-    in_entry.grid(row=1, column=1, pady=5)
+def _save(file, obj):
+    """Save JSON data to storage."""
+    storage.save_json(file, obj)
 
-    tk.Label(frame, text="Calories Out (burned):", font=("Helvetica", 12)).grid(row=2, column=0, sticky='e', pady=5)
-    out_entry = tk.Entry(frame, font=("Helvetica", 12), width=20)
-    out_entry.grid(row=2, column=1, pady=5)
 
-    tk.Label(frame, text="Daily Goal:", font=("Helvetica", 12)).grid(row=3, column=0, sticky='e', pady=5)
-    goal_entry = tk.Entry(frame, font=("Helvetica", 12), width=20)
-    goal_entry.grid(row=3, column=1, pady=5)
+# ---------------- Nutrition Tracking ----------------
 
-    def save():
-        try:
-            in_cal = int(in_entry.get())
-            out_cal = int(out_entry.get())
-            goal = int(goal_entry.get())
-            save_entry(username, in_cal, out_cal, goal)
-            messagebox.showinfo("Saved", "Today's data saved.")
-        except ValueError:
-            messagebox.showerror("Error", "Please enter numeric values.")
+def log_nutrition(user):
+    """Page for logging food intake."""
+    st.title("🍎 Log Nutrition")
 
-    def show_summary():
-        data = summarize_today(username)
-        if data:
-            summary = f"Calories In: {data['in_cal']}\nCalories Out: {data['out_cal']}\nGoal: {data['goal']}"
-            messagebox.showinfo("Today’s Summary", summary)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        food = st.text_input("Food Name")
+        calories = st.number_input("Calories", min_value=0, step=1)
+    
+    with col2:
+        dt = st.date_input("Date", value=date.today())
+        weight_g = st.number_input("Weight (grams)", min_value=1, step=10, value=100)
+
+    if st.button("Add Nutrition Record"):
+        if not food:
+            st.error("Please enter a food name.")
         else:
-            messagebox.showinfo("No Data", "No entry for today yet.")
+            raw = _load(NUTRI_FILE, {})
+            raw.setdefault(user, []).append({
+                "date": dt.isoformat(),
+                "food": food,
+                "weight_g": weight_g,
+                "calories": calories
+            })
+            _save(NUTRI_FILE, raw)
+            st.success(f"✅ Added: {weight_g}g of {food} ({calories} kcal)")
 
-    def open_nutrition():
-        in_str = in_entry.get()
-        if not in_str.strip():
-            messagebox.showerror("Error", "Please enter Calories In (eaten) before opening Nutrition Log.")
-            return
-        try:
-            in_cal = int(in_str)
-            nutrition_screen(root, username, in_cal)
-        except ValueError:
-            messagebox.showerror("Error", "Calories In must be a valid number.")
+    st.divider()
+    st.subheader("📋 Nutrition History")
+    
+    raw = _load(NUTRI_FILE, {})
+    user_records = raw.get(user, [])
+    
+    if user_records:
+        import pandas as pd
+        df = pd.DataFrame(user_records)
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values('date', ascending=False)
+        
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        total_cals = df['calories'].sum()
+        avg_cals = df['calories'].mean()
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Calories", f"{total_cals:.0f} kcal")
+        with col2:
+            st.metric("Avg per Entry", f"{avg_cals:.0f} kcal")
+        with col3:
+            st.metric("Total Entries", len(df))
 
-    tk.Button(
-        frame, text="Nutrition Log",
-        font=("Helvetica", 11), bg="#2196F3", fg="white", width=15,
-        command=open_nutrition
-    ).grid(row=5, column=0, pady=5)
 
-    # Buttons
-    tk.Button(frame, text="Save Data", font=("Helvetica", 11), bg="#4CAF50", fg="white", width=15, command=save).grid(row=4, column=0, pady=15)
-    tk.Button(frame, text="View Summary", font=("Helvetica", 11), bg="#607D8B", fg="white", width=15, command=show_summary).grid(row=4, column=1, pady=15)
+# ---------------- Exercise Tracking ----------------
 
-    tk.Button(frame, text="Nutrition Log", font=("Helvetica", 11), bg="#2196F3", fg="white", width=15,
-              command=open_nutrition).grid(row=5, column=0, pady=5)
-    tk.Button(frame, text="Exercise Log", font=("Helvetica", 11), bg="#FF9800", fg="white", width=15, command=lambda: exercise_screen(root, username)).grid(row=5, column=1, pady=5)
+def log_exercise(user):
+    """Page for logging exercise activities."""
+    st.title("💪 Log Exercise")
 
-    tk.Button(frame, text="Weekly Chart", font=("Helvetica", 11), bg="#9C27B0", fg="white", width=32, command=lambda: show_weekly_plot(username)).grid(row=6, column=0, columnspan=2, pady=15)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        ex_name = st.text_input("Exercise Name")
+        duration = st.number_input("Duration (minutes)", min_value=1, step=5, value=30)
+    
+    with col2:
+        burnt = st.number_input("Calories Burned", min_value=0, step=1)
+        dt = st.date_input("Date", value=date.today())
 
-def save_entry(username, in_cal, out_cal, goal):
-    ensure_data_file(username)
-    path = get_user_data_path(username)
-    today = today_str()
+    if st.button("Add Exercise Record"):
+        if not ex_name:
+            st.error("Please enter an exercise name.")
+        else:
+            raw = _load(EXER_FILE, {})
+            raw.setdefault(user, []).append({
+                "date": dt.isoformat(),
+                "exercise": ex_name,
+                "duration_min": duration,
+                "calories_burned": burnt
+            })
+            _save(EXER_FILE, raw)
+            st.success(f"✅ Added: {ex_name} for {duration} minutes ({burnt} kcal burned)")
 
-    rows = []
-    if os.path.exists(path):
-        with open(path, 'r') as f:
-            reader = csv.reader(f)
-            rows = list(reader)
-
-    header = rows[0] if rows else ["date", "in_cal", "out_cal", "goal"]
-    data = rows[1:] if len(rows) > 1 else []
-
-    data = [row for row in data if row[0] != today]
-    data.append([today, in_cal, out_cal, goal])
-
-    with open(path, 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(header)
-        writer.writerows(data)
-
-def summarize_today(username):
-    path = get_user_data_path(username)
-    if not os.path.exists(path):
-        return None
-
-    today = today_str()
-    with open(path, 'r') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            if row["date"] == today:
-                return {
-                    "in_cal": int(row["in_cal"]),
-                    "out_cal": int(row["out_cal"]),
-                    "goal": int(row["goal"]),
-                }
-    return None
-
+    st.divider()
+    st.subheader("📋 Exercise History")
+    
+    raw = _load(EXER_FILE, {})
+    user_records = raw.get(user, [])
+    
+    if user_records:
+        import pandas as pd
+        df = pd.DataFrame(user_records)
+        df['date'] = pd.to_datetime(df['date'])
+        df = df.sort_values('date', ascending=False)
+        
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        total_burnt = df['calories_burned'].sum()
+        total_duration = df['duration_min'].sum()
+        avg_burnt = df['calories_burned'].mean()
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric("Total Calories Burned", f"{total_burnt:.0f} kcal")
+        with col2:
+            st.metric("Total Duration", f"{total_duration:.0f} min")
+        with col3:
+            st.metric("Avg Burnt per Session", f"{avg_burnt:.0f} kcal")

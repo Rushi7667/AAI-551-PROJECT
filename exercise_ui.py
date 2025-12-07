@@ -8,7 +8,7 @@ import os
 import exercise
 
 
-def app(username="Rushi"):
+def exercise_screen(root=None, username="Rushi"):
     st.sidebar.header(f"User: {username}")
     st.sidebar.info("Track your workouts and calories burned throughout the day!")
 

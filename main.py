@@ -1,43 +1,76 @@
+# ------------------------------------------------------------
 # Author: Linpeng Mao
-# Date: 11/18/2025
-# Description: Entry point of the Fitness Tracker application.
-#              Initializes the main Tkinter window, ensures required directories,
-#              and launches the login interface provided by auth.py.
+# Description: Main Streamlit application for the Fitness Tracker.
+# ------------------------------------------------------------
 
-# main.py
+import streamlit as st
+import auth
+import tracker
+import visualize
+import calories
 
-import tkinter as tk
-import os
-from auth import login_screen
+st.set_page_config(page_title="Fitness Tracker", layout="wide")
 
-DATA_DIR = "data"
-REFERENCE_DIR = "reference"
+# Initialize session state for user login
+if "user" not in st.session_state:
+    st.session_state.user = None
 
-def ensure_directories():
-    """Ensure required directories exist"""
-    os.makedirs(DATA_DIR, exist_ok=True)
-    os.makedirs(REFERENCE_DIR, exist_ok=True)
 
-def center_window(win, width=400, height=300):
-    """Center the window on the screen"""
-    screen_width = win.winfo_screenwidth()
-    screen_height = win.winfo_screenheight()
-    x = int((screen_width - width) / 2)
-    y = int((screen_height - height) / 2)
-    win.geometry(f"{width}x{height}+{x}+{y}")
+# ---------------- LOGIN PAGE ----------------
+def login_page():
+    """Display login & registration page."""
+    st.title("🏋️ Fitness Tracker - Login")
 
-def main():
-    ensure_directories()
+    login_tab, register_tab = st.tabs(["Login", "Register"])
 
-    root = tk.Tk()
-    root.title("Fitness Tracker")
-    center_window(root, 500, 380)
-    root.resizable(False, False)
+    # Login Tab
+    with login_tab:
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if auth.check_login(username, password):
+                st.session_state.user = username
+                st.success("Login successful!")
+            else:
+                st.error("Invalid username or password")
 
-    # Load login screen
-    login_screen(root)
+    # Register Tab
+    with register_tab:
+        new_user = st.text_input("New Username")
+        new_pwd = st.text_input("New Password", type="password")
+        if st.button("Register"):
+            ok, msg = auth.register_user(new_user, new_pwd)
+            if ok:
+                st.success(msg)
+            else:
+                st.error(msg)
 
-    root.mainloop()
 
-if __name__ == "__main__":
-    main()
+# ---------------- MAIN APP ----------------
+def main_app():
+    """Main user interface after login."""
+    st.sidebar.title(f"Hello, {st.session_state.user}")
+    if st.sidebar.button("Logout"):
+        st.session_state.user = None
+        st.rerun()
+
+    page = st.sidebar.radio(
+        "Navigation",
+        ["Dashboard", "Log Nutrition", "Log Exercise", "Calorie Calculator"]
+    )
+
+    if page == "Dashboard":
+        visualize.show_dashboard(st.session_state.user)
+    elif page == "Log Nutrition":
+        tracker.log_nutrition(st.session_state.user)
+    elif page == "Log Exercise":
+        tracker.log_exercise(st.session_state.user)
+    elif page == "Calorie Calculator":
+        calories.show_calorie_calculator()
+
+
+# ---------------- ENTRY ----------------
+if st.session_state.user is None:
+    login_page()
+else:
+    main_app()

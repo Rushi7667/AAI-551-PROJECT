@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import date
 import nutrition
 
-def app(username="Ishaan"):
+def nutrition_screen(root=None, username="Ishaan", in_cal=None):
     st.sidebar.header(f"User: {username}")
     st.sidebar.info("Track your daily caloric intake efficiently.")
     
