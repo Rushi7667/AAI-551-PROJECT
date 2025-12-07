@@ -94,3 +94,4 @@ data/*.csv
 data/*.json
 .env
 ```
+## Make sure to have utils folder in the same directory
